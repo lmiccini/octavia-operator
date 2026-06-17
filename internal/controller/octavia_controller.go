@@ -314,6 +314,16 @@ func (r *OctaviaReconciler) reconcileDelete(ctx context.Context, instance *octav
 		}
 	}
 
+	for _, secretName := range []string{
+		instance.Status.TransportURLSecret,
+		instance.Status.NotificationsTransportURLSecret,
+	} {
+		if err := rabbitmqv1.RemoveTransportSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+			secretName, octaviav1.OctaviaTransportConsumerFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// We did all the cleanup on the objects we created so we can remove the
 	// finalizer from ourselves to allow the deletion
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
@@ -577,9 +587,7 @@ func (r *OctaviaReconciler) reconcileNormal(ctx context.Context, instance *octav
 		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
 	}
 
-	instance.Status.TransportURLSecret = transportURL.Status.SecretName
-
-	if instance.Status.TransportURLSecret == "" {
+	if transportURL.Status.SecretName == "" {
 		Log.Info(fmt.Sprintf("Waiting for the TransportURL %s secret to be created", transportURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -588,12 +596,23 @@ func (r *OctaviaReconciler) reconcileNormal(ctx context.Context, instance *octav
 			condition.InputReadyWaitingMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
+
+	if err := rabbitmqv1.ManageTransportSecretFinalizer(
+		ctx, helper, instance.Namespace,
+		transportURL.Status.SecretName,
+		octaviav1.OctaviaTransportConsumerFinalizer,
+	); err != nil {
+		return ctrl.Result{}, err
+	}
+	transportPrevSecret := transportURL.Status.PreviousSecretName
+	instance.Status.TransportURLSecret = transportURL.Status.SecretName
 	instance.Status.Conditions.MarkTrue(
 		condition.RabbitMqTransportURLReadyCondition,
 		condition.RabbitMqTransportURLReadyMessage)
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	// Handle notifications transport URL if dedicated notifications bus is configured
+	var notificationsPrevSecret string
 	if instance.Spec.NotificationsBus != nil {
 		notificationsTransportURL, notifOp, notifErr := r.notificationsTransportURLCreateOrUpdate(instance)
 		if notifErr != nil {
@@ -609,9 +628,7 @@ func (r *OctaviaReconciler) reconcileNormal(ctx context.Context, instance *octav
 			Log.Info(fmt.Sprintf("Notifications TransportURL %s successfully reconciled - operation: %s", notificationsTransportURL.Name, string(notifOp)))
 		}
 
-		instance.Status.NotificationsTransportURLSecret = notificationsTransportURL.Status.SecretName
-
-		if instance.Status.NotificationsTransportURLSecret == "" {
+		if notificationsTransportURL.Status.SecretName == "" {
 			Log.Info(fmt.Sprintf("Waiting for the notifications TransportURL %s secret to be created", notificationsTransportURL.Name))
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				octaviav1.OctaviaRabbitMqNotificationsTransportURLReadyCondition,
@@ -620,6 +637,16 @@ func (r *OctaviaReconciler) reconcileNormal(ctx context.Context, instance *octav
 				octaviav1.OctaviaRabbitMqNotificationsTransportURLReadyInitMessage))
 			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 		}
+
+		if err := rabbitmqv1.ManageTransportSecretFinalizer(
+			ctx, helper, instance.Namespace,
+			notificationsTransportURL.Status.SecretName,
+			octaviav1.OctaviaTransportConsumerFinalizer,
+		); err != nil {
+			return ctrl.Result{}, err
+		}
+		notificationsPrevSecret = notificationsTransportURL.Status.PreviousSecretName
+		instance.Status.NotificationsTransportURLSecret = notificationsTransportURL.Status.SecretName
 		instance.Status.Conditions.MarkTrue(
 			octaviav1.OctaviaRabbitMqNotificationsTransportURLReadyCondition,
 			octaviav1.OctaviaRabbitMqNotificationsTransportURLReadyMessage)
@@ -1131,6 +1158,29 @@ func (r *OctaviaReconciler) reconcileNormal(ctx context.Context, instance *octav
 	instance.Status.Conditions.MarkTrue(condition.CreateServiceReadyCondition, condition.CreateServiceReadyMessage)
 
 	// create Deployment - end
+
+	// Remove old transport secret finalizers only after all sub-CRs have
+	// picked up the new secret and finished rolling out.
+	if instance.Status.Conditions.AllSubConditionIsTrue() && apiObsGen && ampObsGen {
+		if transportPrevSecret != "" {
+			if err := rabbitmqv1.RemoveTransportSecretConsumerFinalizer(
+				ctx, helper, instance.Namespace,
+				transportPrevSecret,
+				octaviav1.OctaviaTransportConsumerFinalizer,
+			); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if notificationsPrevSecret != "" {
+			if err := rabbitmqv1.RemoveTransportSecretConsumerFinalizer(
+				ctx, helper, instance.Namespace,
+				notificationsPrevSecret,
+				octaviav1.OctaviaTransportConsumerFinalizer,
+			); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	// We reached the end of the Reconcile, update the Ready condition based on
 	// the sub conditions

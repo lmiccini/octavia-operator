@@ -1472,4 +1472,40 @@ var _ = Describe("Octavia controller", func() {
 		})
 	})
 
+	When("TransportURL consumer finalizer is managed", func() {
+		BeforeEach(func() {
+			createAndSimulateKeystone(octaviaName)
+			createAndSimulateOctaviaSecrets(octaviaName)
+			createAndSimulateOctaviaCertsSecrets(octaviaName)
+			createAndSimulateTransportURL(transportURLName, transportURLSecretName)
+			createAndSimulateDB(spec)
+
+			DeferCleanup(th.DeleteInstance, CreateOctavia(octaviaName, spec))
+		})
+
+		It("should add the consumer finalizer to the transport secret", func() {
+			Eventually(func(g Gomega) {
+				secret := th.GetSecret(transportURLSecretName)
+				g.Expect(secret.Finalizers).To(
+					ContainElement(octaviav1.OctaviaTransportConsumerFinalizer))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should remove the consumer finalizer from transport secret on CR deletion", func() {
+			Eventually(func(g Gomega) {
+				secret := th.GetSecret(transportURLSecretName)
+				g.Expect(secret.Finalizers).To(
+					ContainElement(octaviav1.OctaviaTransportConsumerFinalizer))
+			}, timeout, interval).Should(Succeed())
+
+			th.DeleteInstance(GetOctavia(octaviaName))
+
+			Eventually(func(g Gomega) {
+				secret := th.GetSecret(transportURLSecretName)
+				g.Expect(secret.Finalizers).NotTo(
+					ContainElement(octaviav1.OctaviaTransportConsumerFinalizer))
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+
 })

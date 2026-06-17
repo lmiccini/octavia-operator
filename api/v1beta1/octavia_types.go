@@ -26,6 +26,11 @@ import (
 )
 
 const (
+	// OctaviaTransportConsumerFinalizer is added to transport secrets that
+	// Octavia is actively consuming, preventing premature deletion during
+	// credential rotation.
+	OctaviaTransportConsumerFinalizer = "openstack.org/octavia-transport-consumer"
+
 	// Container image fall-back defaults
 
 	// OctaviaAPIContainerImage is the fall-back container image for OctaviaAPI

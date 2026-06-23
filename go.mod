@@ -3,14 +3,14 @@ module github.com/openstack-k8s-operators/octavia-operator
 go 1.26.3
 
 require (
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/gophercloud/gophercloud/v2 v2.13.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260718084237-5df87de62106
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260718115006-465f0b877bbe
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260717092345-ab1ee7b97c67
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260724091355-a86f6d29e055
 	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260717092345-ab1ee7b97c67
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260718115003-b917b0d72e8a
 	github.com/openstack-k8s-operators/octavia-operator/api v0.0.0-00010101000000-000000000000
@@ -144,3 +144,13 @@ replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a
 
 // pin to avoid yaml module conflict (go.yaml.in/yaml/v3 vs gopkg.in/yaml.v3)
 replace github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9 //allow-merging
+
+replace github.com/openstack-k8s-operators/infra-operator/apis => github.com/lmiccini/infra-operator/apis v0.0.0-20260731051031-668c7bff774e
+
+replace github.com/openstack-k8s-operators/lib-common/modules/common => github.com/lmiccini/lib-common/modules/common v0.0.0-20260731054026-d02b1fca9d61
+
+replace github.com/openstack-k8s-operators/lib-common/modules/openstack => github.com/lmiccini/lib-common/modules/openstack v0.0.0-20260731054026-d02b1fca9d61
+
+replace github.com/openstack-k8s-operators/lib-common/modules/storage => github.com/lmiccini/lib-common/modules/storage v0.0.0-20260731054026-d02b1fca9d61
+
+replace github.com/openstack-k8s-operators/lib-common/modules/test => github.com/lmiccini/lib-common/modules/test v0.0.0-20260731054026-d02b1fca9d61

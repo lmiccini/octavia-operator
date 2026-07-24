@@ -355,6 +355,10 @@ type OctaviaStatus struct {
 	// +listType:=atomic
 	RedisHosts []string `json:"redisHosts,omitempty"`
 
+	// RedisMTLSSecret - name of the secret containing the mTLS client
+	// certificate for Redis authentication
+	RedisMTLSSecret string `json:"redisMTLSSecret,omitempty"`
+
 	// ObservedGeneration - the most recent generation observed for this
 	// service. If the observed generation is less than the spec generation,
 	// then the controller has not processed the latest changes injected by

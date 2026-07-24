@@ -795,6 +795,11 @@ func (r *OctaviaAmphoraControllerReconciler) generateServiceSecrets(
 	} else {
 		templateParameters["JobboardBackendSSLOptions"] = ""
 	}
+	if spec.RedisMTLSSecret != "" {
+		templateParameters["RedisMTLSCert"] = "/var/lib/config-data/mtls/certs/mtls.crt"
+		templateParameters["RedisMTLSKey"] = "/var/lib/config-data/mtls/private/mtls.key"
+		templateParameters["RedisMTLSCa"] = "/var/lib/config-data/mtls/certs/mtls-ca.crt"
+	}
 
 	// TODO(beagles): populate the template parameters
 	cms := []util.Template{

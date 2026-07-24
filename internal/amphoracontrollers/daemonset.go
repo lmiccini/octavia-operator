@@ -24,6 +24,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	octaviav1 "github.com/openstack-k8s-operators/octavia-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/octavia-operator/internal/octavia"
 
@@ -112,6 +113,38 @@ func DaemonSet(
 	if instance.Spec.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
+	}
+
+	if instance.Spec.RedisMTLSSecret != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: instance.Spec.RedisMTLSSecret,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  instance.Spec.RedisMTLSSecret,
+					DefaultMode: ptr.To[int32](0400),
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts,
+			corev1.VolumeMount{
+				Name:      instance.Spec.RedisMTLSSecret,
+				MountPath: "/var/lib/config-data/mtls/certs/mtls.crt",
+				SubPath:   tls.CertKey,
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      instance.Spec.RedisMTLSSecret,
+				MountPath: "/var/lib/config-data/mtls/private/mtls.key",
+				SubPath:   tls.PrivateKey,
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      instance.Spec.RedisMTLSSecret,
+				MountPath: "/var/lib/config-data/mtls/certs/mtls-ca.crt",
+				SubPath:   tls.CAKey,
+				ReadOnly:  true,
+			},
+		)
 	}
 
 	args := []string{

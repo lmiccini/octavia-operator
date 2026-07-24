@@ -508,8 +508,15 @@ func (r *OctaviaReconciler) reconcileInit(
 
 		sort.Strings(hostIPs)
 		instance.Status.RedisHosts = hostIPs
+
+		redis, err := redisv1.GetRedisByName(ctx, helper, instance.Spec.RedisServiceName, instance.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to get Redis %s: %w", instance.Spec.RedisServiceName, err)
+		}
+		instance.Status.RedisMTLSSecret = redis.GetRedisMTLSSecret()
 	} else {
 		instance.Status.RedisHosts = []string{}
+		instance.Status.RedisMTLSSecret = ""
 	}
 
 	Log.Info("Reconciled Service init successfully")
@@ -1746,6 +1753,7 @@ func (r *OctaviaReconciler) amphoraControllerDaemonSetCreateOrUpdate(
 		daemonset.Spec.AmphoraCustomFlavors = instance.Spec.AmphoraCustomFlavors
 		daemonset.Spec.CreateFlavors = instance.Spec.CreateFlavors
 		daemonset.Spec.RedisHosts = instance.Status.RedisHosts
+		daemonset.Spec.RedisMTLSSecret = instance.Status.RedisMTLSSecret
 		daemonset.Spec.TLS = instance.Spec.OctaviaAPI.TLS.Ca
 		daemonset.Spec.AmphoraImageOwnerID = ampImageOwnerID
 		daemonset.Spec.OctaviaProviderSubnetGateway = networkInfo.ManagementSubnetGateway

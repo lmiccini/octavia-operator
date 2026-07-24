@@ -89,3 +89,5 @@ replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a
 
 // pin to avoid yaml module conflict (go.yaml.in/yaml/v3 vs gopkg.in/yaml.v3)
 replace github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9 //allow-merging
+
+replace github.com/openstack-k8s-operators/infra-operator/apis => github.com/lmiccini/infra-operator/apis v0.0.0-20260724070814-d2e8d92bb55f
